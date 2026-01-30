@@ -5,30 +5,29 @@ import plotly.express as px
 # --- CONFIGURAÇÃO VISUAL (DARK MODE PREMIUM) ---
 st.set_page_config(page_title="Consolidado de Vendas - Pro", layout="wide")
 
+# CORREÇÃO: O termo correto é unsafe_allow_html
 st.markdown("""
     <style>
     .main { background-color: #0b0e14; color: white; }
     div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
     .stPlotlyChart { border: 1px solid #1f2937; border-radius: 15px; }
     </style>
-    """, unsafe_allow_stdio=True)
+    """, unsafe_allow_html=True)
 
 # --- FUNÇÕES DE CONEXÃO (O "Cérebro" das APIs) ---
 
 def get_data_kiwify(api_key):
-    # Aqui o código se conecta com a Kiwify futuramente
-    # Por enquanto, ele gera um dado simulado para você ver o design
+    # Simulação de dados (vamos conectar a API real no próximo passo)
     return {"vendas": 15200.00, "quantidade": 45}
 
 def get_data_hotmart(client_id, secret):
-    # Aqui o código se conecta com a Hotmart futuramente
+    # Simulação de dados
     return {"vendas": 22450.00, "quantidade": 62}
 
 # --- INTERFACE DO USUÁRIO ---
 st.title("📊 Gestão Centralizada de Tráfego e Vendas")
 st.write("Conectado: **Hotmart** | **Kiwify**")
 
-# Barra lateral para inserir as chaves (sem precisar mexer no código)
 with st.sidebar:
     st.header("Configurações de API")
     st.info("Insira suas chaves abaixo para sincronizar")
@@ -36,7 +35,6 @@ with st.sidebar:
     hot_id = st.text_input("Client ID Hotmart")
     
 # --- PROCESSAMENTO DOS DADOS ---
-# Somando as plataformas
 vendas_kiwify = get_data_kiwify(kiwify_key)
 vendas_hotmart = get_data_hotmart(hot_id, "")
 
@@ -72,7 +70,6 @@ with col_left:
 
 with col_right:
     st.subheader("Meta Diária de Faturamento")
-    # Simulação de progresso
     progresso = 65 
     st.progress(progresso)
     st.write(f"Você atingiu **{progresso}%** da sua meta de R$ 50.000,00")
