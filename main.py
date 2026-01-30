@@ -1,27 +1,61 @@
 import streamlit as st
+import pandas as pd
 
-# --- SISTEMA DE NAVEGAÇÃO ---
-st.sidebar.title("Navegação")
-page = st.sidebar.radio("Ir para:", ["🏠 Visão Geral", "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "⚙️ Configurações"])
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Analytics Pro", layout="wide")
 
-if page == "🏠 Visão Geral":
-    st.title("Consolidado de Tráfego")
-    # Aqui entra o código que já fizemos de gráficos e KPIs
+# --- MENU LATERAL ---
+with st.sidebar:
+    st.title("🛡️ Painel de Controle")
+    page = st.radio("Navegação", ["Visão Geral", "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "🔌 Conexões"])
+    st.divider()
+    st.info("Logado como: Usuário Administrador")
 
-elif page == "🎯 Lead Scoring":
-    st.title("Inteligência de Leads")
-    st.write("Analise a qualidade dos seus leads por profissão e resposta.")
-    # Aqui criaremos a tabela que filtra: Profissão == "Dono de Empresa"
+# --- FUNÇÃO DE LEAD SCORING (Lógica de Negócio) ---
+def calcular_score(df):
+    score = 0
+    # Exemplo: Se profissão for 'Empresário' ganha 20 pontos
+    # Vamos criar uma lógica que você pode ajustar
+    df['Score'] = 0
+    df.loc[df['Profissão'].str.contains('Empresário', na=False), 'Score'] += 20
+    df.loc[df['Faturamento'].str.contains('> 10k', na=False), 'Score'] += 30
+    return df
 
+# --- PÁGINA: LEAD SCORING ---
+if page == "🎯 Lead Scoring":
+    st.title("Inteligência de Leads (Google Sheets)")
+    
+    # URL da sua planilha (precisa estar pública ou com segredos configurados)
+    sheet_url = st.text_input("Link da Planilha de Leads")
+    
+    if sheet_url:
+        # Lendo dados do Sheets
+        df_leads = pd.read_csv(sheet_url.replace('/edit#gid=', '/export?format=csv&gid='))
+        df_scored = calcular_score(df_leads)
+        
+        # Filtro de Leads Qualificados
+        leads_quentes = df_scored[df_scored['Score'] >= 40]
+        
+        c1, c2 = st.columns(2)
+        c1.metric("Total de Leads", len(df_scored))
+        c2.metric("Leads Qualificados (Score > 40)", len(leads_quentes))
+        
+        st.dataframe(df_scored.sort_values(by='Score', ascending=False))
+
+# --- PÁGINA: FUNIL DE PERPÉTUO ---
 elif page == "🌪️ Funil de Perpétuo":
-    st.title("Métricas de Checkout")
-    # Colunas para Order Bump, Upsell e Downsell
-    c1, c2 = st.columns(2)
-    with c1:
-        st.metric("Taxa de Order Bump", "28%", delta="3%")
-    with c2:
-        st.metric("Taxa de Upsell 1", "12%", delta="-1%")
-
-elif page == "⚙️ Configurações":
-    st.title("Conexões de API")
-    # Onde você coloca os tokens da Kiwify, Facebook, etc.
+    st.title("Análise de Upsell e Order Bump")
+    st.write("Cálculo baseado em produtos separados no checkout.")
+    
+    # Exemplo de tabela de conversão
+    dados_funil = {
+        "Etapa": ["Produto Principal", "Order Bump 1", "Upsell 1", "Downsell"],
+        "Vendas": [100, 35, 12, 5]
+    }
+    df_funil = pd.DataFrame(dados_funil)
+    
+    # Cálculo de % de Anexação (Attach Rate)
+    vendas_base = df_funil.iloc[0]['Vendas']
+    df_funil['Conversão (%)'] = (df_funil['Vendas'] / vendas_base) * 100
+    
+    st.table(df_funil)
