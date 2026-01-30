@@ -5,7 +5,7 @@ import pandas as pd
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Analytics Pro 2026", layout="wide")
 
-# --- CSS DARK PREMIUM (PRESERVADO) ---
+# --- CSS DARK PREMIUM ---
 st.markdown("""
     <style>
     .main { background-color: #0b0e14; color: white; }
@@ -14,88 +14,106 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- CONEXÃO COM A PLANILHA MESTRA (DATABASE) ---
-# Lembre-se de configurar o arquivo .streamlit/secrets.toml com o link da planilha
+# --- CONEXÃO COM O BANCO DE DADOS (SHEETS) ---
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-except:
-    st.error("Erro na conexão com o Google Sheets. Verifique as chaves em Conexões.")
+except Exception as e:
+    st.error("Erro de conexão. Certifique-se de configurar o secrets.toml no Streamlit Cloud.")
 
 def carregar_projetos():
     try:
-        # Tenta ler a aba 'Configuracoes' da sua planilha mestra
         return conn.read(worksheet="Configuracoes", ttl=0)
     except:
-        # Se falhar (ex: planilha vazia), cria uma estrutura padrão
-        return pd.DataFrame(columns=["Projeto", "Meta_Token", "Google_Token", "TikTok_Token", "Hotmart_Token", "Kiwify_Token", "Sheets_URL"])
+        # Estrutura completa baseada nas APIs de 2026
+        cols = ["Projeto", "Meta_Token", "Meta_ID", "Google_Dev", "Google_CustID", 
+                "TikTok_Token", "TikTok_ID", "Hotmart_ID", "Hotmart_Secret", 
+                "Kiwify_Token", "Kiwify_ID", "Sheets_URL"]
+        return pd.DataFrame(columns=cols)
 
-# --- MENU LATERAL (TODOS OS ITENS RESTAURADOS) ---
+# --- MENU LATERAL ---
 with st.sidebar:
     st.title("🛡️ Gestão de Tráfego")
     
-    # Carrega a lista de projetos do banco de dados (Sheets)
     df_db = carregar_projetos()
-    lista_projetos = df_db["Projeto"].tolist() if not df_db.empty else ["Projeto Padrão"]
+    lista_projetos = df_db["Projeto"].tolist() if not df_db.empty else []
     
     projeto_ativo = st.selectbox("📁 Projeto Ativo", lista_projetos + ["+ Novo Projeto"])
     st.divider()
     
-    # Menu completo sem omissões
     page = st.radio("Navegação", [
-        "🏠 Dados Consolidados", 
-        "🔵 Meta Ads", 
-        "🔴 Google Ads", 
-        "⚫ TikTok Ads", 
-        "🟠 Hotmart", 
-        "🟢 Kiwify", 
-        "🎯 Lead Scoring",
-        "🌪️ Funil de Perpétuo",
-        "🔌 Conexões"
+        "🏠 Dados Consolidados", "🔵 Meta Ads", "🔴 Google Ads", 
+        "⚫ TikTok Ads", "🟠 Hotmart", "🟢 Kiwify", 
+        "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "🔌 Conexões"
     ])
-    
-    st.divider()
-    st.info(f"Projeto: {projeto_ativo}")
 
 # --- LÓGICA DAS PÁGINAS ---
 
-if page == "🏠 Dados Consolidados":
-    st.title(f"📊 Dashboard Consolidado: {projeto_ativo}")
-    st.write("Visão geral de ROI e Faturamento unificado.")
-
-elif page == "🔵 Meta Ads":
-    st.title(f"🔵 Performance Meta Ads - {projeto_ativo}")
-    st.write("Dados extraídos da Marketing API v24.0.")
-
-elif page == "🔴 Google Ads":
-    st.title(f"🔴 Performance Google Ads - {projeto_ativo}")
-    st.write("Análise de campanhas de Busca e Youtube.")
-
-elif page == "⚫ TikTok Ads":
-    st.title(f"⚫ Performance TikTok Ads - {projeto_ativo}")
-    st.write("Métricas de conversão de anúncios em vídeo.")
-
-elif page == "🟠 Hotmart":
-    st.title(f"🟠 Vendas Hotmart - {projeto_ativo}")
-
-elif page == "🟢 Kiwify":
-    st.title(f"🟢 Vendas Kiwify - {projeto_ativo}")
-
-elif page == "🎯 Lead Scoring":
-    st.title(f"🎯 Lead Scoring & Qualidade - {projeto_ativo}")
-    st.subheader("Cruzamento: Meta Ads vs. Leads do Sheets")
-    # Aqui a lógica usará a Sheets_URL salva para este projeto
-
-elif page == "🌪️ Funil de Perpétuo":
-    st.title(f"🌪️ Funil de Perpétuo - {projeto_ativo}")
-
-elif page == "🔌 Conexões":
+if page == "🔌 Conexões":
     st.title("🔌 Configurações de Projetos")
     
-    with st.form("form_config"):
-        st.subheader(f"⚙️ Cadastro/Edição: {projeto_ativo}")
+    # O formulário agora tem o botão de submit obrigatório no final
+    with st.form("form_config_geral"):
+        st.subheader(f"⚙️ Configurando: {projeto_ativo}")
         nome = st.text_input("Nome do Projeto", value="" if projeto_ativo == "+ Novo Projeto" else projeto_ativo)
         
-        c1, c2 = st.columns(2)
-        with c1:
-            m_token = st.text_input("Token Meta Ads", type="password")
-            g
+        tab1, tab2, tab3 = st.tabs(["Tráfego (Meta/Google/TT)", "Vendas (Hot/Kiwi)", "Dados (Sheets)"])
+        
+        with tab1:
+            st.write("**Meta Ads**")
+            m_t = st.text_input("Access Token", type="password")
+            m_i = st.text_input("Ad Account ID (act_xxx)")
+            st.write("**Google Ads**")
+            g_d = st.text_input("Developer Token")
+            g_c = st.text_input("Customer ID")
+            st.write("**TikTok Ads**")
+            t_t = st.text_input("Access Token TikTok", type="password")
+            t_i = st.text_input("Advertiser ID")
+
+        with tab2:
+            st.write("**Hotmart**")
+            h_i = st.text_input("Client ID")
+            h_s = st.text_input("Client Secret", type="password")
+            st.write("**Kiwify**")
+            k_t = st.text_input("API Key (Kiwify)", type="password")
+            k_i = st.text_input("Account ID")
+
+        with tab3:
+            s_u = st.text_input("Link CSV da Planilha de Leads")
+
+        # O BOTÃO QUE ESTAVA FALTANDO
+        enviar = st.form_submit_button("💾 Salvar Configurações Permanentemente")
+
+        if enviar:
+            novo_projeto = pd.DataFrame([{
+                "Projeto": nome, "Meta_Token": m_t, "Meta_ID": m_i,
+                "Google_Dev": g_d, "Google_CustID": g_c,
+                "TikTok_Token": t_t, "TikTok_ID": t_i,
+                "Hotmart_ID": h_i, "Hotmart_Secret": h_s,
+                "Kiwify_Token": k_t, "Kiwify_ID": k_i,
+                "Sheets_URL": s_u
+            }])
+            
+            df_final = pd.concat([df_db, novo_projeto]).drop_duplicates(subset=['Projeto'], keep='last')
+            conn.update(worksheet="Configuracoes", data=df_final)
+            st.success(f"Projeto '{nome}' atualizado no banco de dados!")
+            st.rerun()
+
+elif page == "🏠 Dados Consolidados":
+    st.title(f"📊 Dashboard: {projeto_ativo}")
+    st.info("Aguardando configuração de APIs para exibir dados reais.")
+
+# As outras páginas mantêm o título do projeto ativo
+elif page == "🔵 Meta Ads":
+    st.title(f"🔵 Meta Ads - {projeto_ativo}")
+elif page == "🔴 Google Ads":
+    st.title(f"🔴 Google Ads - {projeto_ativo}")
+elif page == "⚫ TikTok Ads":
+    st.title(f"⚫ TikTok Ads - {projeto_ativo}")
+elif page == "🟠 Hotmart":
+    st.title(f"🟠 Hotmart - {projeto_ativo}")
+elif page == "🟢 Kiwify":
+    st.title(f"🟢 Kiwify - {projeto_ativo}")
+elif page == "🎯 Lead Scoring":
+    st.title(f"🎯 Lead Scoring - {projeto_ativo}")
+elif page == "🌪️ Funil de Perpétuo":
+    st.title(f"🌪️ Funil de Perpétuo - {projeto_ativo}")
