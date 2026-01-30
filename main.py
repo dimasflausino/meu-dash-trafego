@@ -65,7 +65,7 @@ if page == "🔌 Conexões":
         st.subheader(f"⚙️ Editando: {projeto_ativo}")
         nome_p = st.text_input("Nome do Projeto", value="" if projeto_ativo == "+ Novo Projeto" else projeto_ativo)
         
-        tab_t, tab_v, tab_d = st.tabs(["🚀 Tráfego (Ads)", "💰 Vendas (Checkouts)", "📊 Dados (Sheets)"])
+        tab_t, tab_v, tab_d = st.tabs(["🚀 Plataforma de Captação", "💰 Plataforma de Vendas", "📊 Sheets"])
         
         with tab_t:
             st.write("**Meta Ads v24.0**")
