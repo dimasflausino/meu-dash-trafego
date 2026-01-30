@@ -1,70 +1,75 @@
 import streamlit as st
 import pandas as pd
 
-# --- CONFIGURAÇÃO ---
-st.set_page_config(page_title="Analytics Pro - Qualidade de Ads", layout="wide")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Analytics Pro - Estilo VK Metrics", layout="wide")
 
-# --- NAVEGAÇÃO ---
-page = st.sidebar.radio("Navegação", ["Visão Geral", "🎯 Qualidade por Ad (Meta+Sheets)", "⚙️ Configurações"])
+# --- CSS PARA ESTILO DARK PREMIUM ---
+st.markdown("""
+    <style>
+    .main { background-color: #0b0e14; color: white; }
+    div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
+    section[data-testid="stSidebar"] { background-color: #111827; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- FUNÇÃO DE CÁLCULO DE SCORE ---
-def processar_leads(df):
-    # Lógica de Score (Ajuste os nomes das colunas conforme seu Sheets)
-    df['Score'] = 0
-    # Exemplo: +20 pontos para Empresários
-    df.loc[df['Profissão'].str.contains('Empresário', na=False, case=False), 'Score'] += 20
-    # Exemplo: +30 pontos para faturamento alto
-    df.loc[df['Faturamento'].str.contains('> 10k', na=False), 'Score'] += 30
+# --- MENU LATERAL (TODOS OS SEUS MENUS ESTÃO AQUI) ---
+with st.sidebar:
+    st.title("🛡️ Gestão de Tráfego")
     
-    df['Qualificado'] = df['Score'] >= 40
-    return df
-
-if page == "🎯 Qualidade por Ad (Meta+Sheets)":
-    st.title("Análise de Performance por Qualidade")
+    # Lista de navegação completa conforme seu pedido
+    page = st.radio("Navegação", [
+        "🏠 Visão Geral", 
+        "🔵 Meta Ads (Facebook)", 
+        "🔴 Google Ads", 
+        "⚫ TikTok Ads", 
+        "🟠 Hotmart", 
+        "🟢 Kiwify", 
+        "🎯 Qualidade por Ad (Lead Scoring)",
+        "🌪️ Funil de Perpétuo",
+        "🔌 Conexões"
+    ])
     
-    # 1. Simulação de Dados do Meta Ads (Onde virá da API)
-    # Aqui teremos: Nome do Ad e quanto ele gastou
-    meta_data = pd.DataFrame({
-        'ad_name': ['Ad_01_Video_Criativo', 'Ad_02_Foto_Depoimento', 'Ad_03_Direto_Venda'],
-        'custo': [500.00, 350.00, 800.00]
-    })
+    st.divider()
+    st.info("Usuário: Administrador")
 
-    # 2. Entrada do Google Sheets
-    sheet_url = st.text_input("Link da Planilha de Leads (CSV)", placeholder="Cole o link do seu Sheets aqui...")
+# --- LÓGICA DAS PÁGINAS (CONSTRUINDO O CONTEÚDO) ---
 
-    if sheet_url:
-        try:
-            # Carrega e processa leads
-            df_leads = pd.read_csv(sheet_url.replace('/edit#gid=', '/export?format=csv&gid='))
-            df_scored = processar_leads(df_leads)
+if page == "🏠 Visão Geral":
+    st.title("Consolidado de Performance")
+    st.write("Resumo geral de todas as suas fontes de tráfego e vendas.")
+    # Aqui colocaremos os cartões de ROAS Global e Lucro Total
 
-            # 3. Cruzamento (Merge) usando a UTM
-            # 'utm_content' ou 'utm_name' deve ser a coluna no seu Sheets
-            resumo_leads = df_scored.groupby('utm_ad_name').agg(
-                leads_totais=('Email', 'count'),
-                leads_qualificados=('Qualificado', 'sum')
-            ).reset_index()
+elif page == "🔵 Meta Ads (Facebook)":
+    st.title("Performance Meta Ads")
+    st.write("Métricas de CTR, CPC e Gasto por Campanha.")
 
-            # Junta com os custos do Meta
-            df_final = pd.merge(meta_data, resumo_leads, left_on='ad_name', right_on='utm_ad_name', how='left')
-            
-            # 4. Cálculos de Performance Real
-            df_final['CPL_Total'] = df_final['custo'] / df_final['leads_totais']
-            df_final['CPL_Qualificado'] = df_final['custo'] / df_final['leads_qualificados']
+elif page == "🔴 Google Ads":
+    st.title("Performance Google Ads")
+    st.write("Análise de Rede de Pesquisa e Youtube Ads.")
 
-            # Exibição
-            st.subheader("Ranking de Anúncios por Qualidade")
-            
-            # Colorindo quem está performando bem
-            st.dataframe(df_final.style.format({
-                'custo': 'R$ {:.2f}',
-                'CPL_Total': 'R$ {:.2f}',
-                'CPL_Qualificado': 'R$ {:.2f}'
-            }).background_gradient(subset=['leads_qualificados'], cmap='Greens'))
+elif page == "⚫ TikTok Ads":
+    st.title("Performance TikTok Ads")
+    st.write("Métricas de retenção e conversão de vídeos.")
 
-            # Insights
-            melhor_ad = df_final.loc[df_final['leads_qualificados'].idxmax()]
-            st.success(f"🔥 O anúncio **{melhor_ad['ad_name']}** é o campeão em qualidade com {melhor_ad['leads_qualificados']} leads quentes!")
+elif page == "🟠 Hotmart":
+    st.title("Vendas Hotmart")
+    st.write("Acompanhamento de vendas, boletos gerados e cartões aprovados.")
 
-        except Exception as e:
-            st.error(f"Erro ao ler planilha: Verifique se os nomes das colunas (Email, Profissão, utm_ad_name) estão corretos.")
+elif page == "🟢 Kiwify":
+    st.title("Vendas Kiwify")
+    st.write("Faturamento líquido e volume de transações.")
+
+elif page == "🎯 Qualidade por Ad (Lead Scoring)":
+    st.title("Cruzamento: Meta Ads vs. Leads Qualificados")
+    st.subheader("Onde o tráfego encontra o lucro real")
+    # Aqui entra o código de cruzamento (UTM do Sheets + Custo do Meta)
+    st.write("Esta página mostra qual anúncio específico está trazendo o lead que você quer.")
+
+elif page == "🌪️ Funil de Perpétuo":
+    st.title("Análise de Checkout (Upsell/Order Bump)")
+    st.write("Cálculo de taxa de conversão entre produtos separados.")
+
+elif page == "🔌 Conexões":
+    st.title("Configurações e Chaves de API")
+    st.warning("Insira seus tokens aqui para ativar os menus acima.")
