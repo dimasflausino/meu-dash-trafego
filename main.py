@@ -28,7 +28,10 @@ with st.sidebar:
         "🎯 Lead Scoring"
     ])
 
+# ============ FUNÇÕES DE GERAÇÃO DE DADOS ============
+
 def gerar_dados_meta(dias=30):
+    """Gera dados simulados para Meta Ads"""
     dates = pd.date_range(start=datetime.now() - timedelta(days=dias), periods=dias)
     return pd.DataFrame({
         'data': dates,
@@ -40,7 +43,8 @@ def gerar_dados_meta(dias=30):
     })
 
 def gerar_dados_google(dias=30):
-    dates = pd.date_range(start=datetime.now() - timedelta(dias=dias), periods=dias)
+    """Gera dados simulados para Google Ads"""
+    dates = pd.date_range(start=datetime.now() - timedelta(days=dias), periods=dias)
     return pd.DataFrame({
         'data': dates,
         'impressoes': np.random.randint(8000, 40000, dias),
@@ -51,7 +55,8 @@ def gerar_dados_google(dias=30):
     })
 
 def gerar_dados_tiktok(dias=30):
-    dates = pd.date_range(start=datetime.now() - timedelta(dias=dias), periods=dias)
+    """Gera dados simulados para TikTok Ads"""
+    dates = pd.date_range(start=datetime.now() - timedelta(days=dias), periods=dias)
     return pd.DataFrame({
         'data': dates,
         'impressoes': np.random.randint(15000, 60000, dias),
@@ -62,6 +67,7 @@ def gerar_dados_tiktok(dias=30):
     })
 
 def gerar_anuncios_meta():
+    """Gera dados de anúncios Meta"""
     return pd.DataFrame({
         'ID': ['ad_001', 'ad_002', 'ad_003', 'ad_004', 'ad_005'],
         'Nome': ['Anúncio 1', 'Anúncio 2', 'Anúncio 3', 'Anúncio 4', 'Anúncio 5'],
@@ -76,6 +82,7 @@ def gerar_anuncios_meta():
     })
 
 def gerar_campanhas_google():
+    """Gera dados de campanhas Google Ads"""
     return pd.DataFrame({
         'ID': ['camp_001', 'camp_002', 'camp_003', 'camp_004'],
         'Nome': ['Campanha Search 1', 'Campanha Display 1', 'Campanha Shopping', 'Campanha Video'],
@@ -90,6 +97,7 @@ def gerar_campanhas_google():
     })
 
 def gerar_campanhas_tiktok():
+    """Gera dados de campanhas TikTok Ads"""
     return pd.DataFrame({
         'ID': ['tt_001', 'tt_002', 'tt_003', 'tt_004'],
         'Nome': ['Campanha TT 1', 'Campanha TT 2', 'Campanha TT 3', 'Campanha TT 4'],
@@ -103,8 +111,29 @@ def gerar_campanhas_tiktok():
         'ROI': [265, 245, 235, 180]
     })
 
+def gerar_dados_hotmart(dias=30):
+    """Gera dados simulados para Hotmart"""
+    dates = pd.date_range(start=datetime.now() - timedelta(days=dias), periods=dias)
+    return pd.DataFrame({
+        'data': dates,
+        'vendas': np.random.randint(5, 20, dias),
+        'faturamento': np.random.uniform(500, 2000, dias),
+    })
+
+def gerar_dados_kiwify(dias=30):
+    """Gera dados simulados para Kiwify"""
+    dates = pd.date_range(start=datetime.now() - timedelta(days=dias), periods=dias)
+    return pd.DataFrame({
+        'data': dates,
+        'vendas': np.random.randint(3, 15, dias),
+        'faturamento': np.random.uniform(300, 1500, dias),
+    })
+
+# ============ PÁGINAS ============
+
 if page == "🏠 Dashboard":
     st.title("📊 Dashboard Consolidado")
+    
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("💰 Investimento", "R$ 15.430", "+5%")
@@ -116,6 +145,7 @@ if page == "🏠 Dashboard":
         st.metric("💹 ROI", "193%", "+15%")
     
     st.divider()
+    
     df_meta = gerar_dados_meta()
     df_google = gerar_dados_google()
     df_tiktok = gerar_dados_tiktok()
@@ -129,6 +159,7 @@ if page == "🏠 Dashboard":
 
 elif page == "🔵 Meta Ads":
     st.title("🔵 Meta Ads - Análise Detalhada")
+    
     df_meta = gerar_dados_meta()
     df_anuncios = gerar_anuncios_meta()
     
@@ -140,7 +171,8 @@ elif page == "🔵 Meta Ads":
     with col3:
         st.metric("✅ Conversões", f"{df_meta['conversoes'].sum():.0f}")
     with col4:
-        st.metric("💹 ROI", f"{((df_meta['faturamento'].sum() / df_meta['gasto'].sum() - 1) * 100):.1f}%")
+        roi_meta = ((df_meta['faturamento'].sum() / df_meta['gasto'].sum() - 1) * 100)
+        st.metric("💹 ROI", f"{roi_meta:.1f}%")
     
     st.divider()
     
@@ -157,9 +189,13 @@ elif page == "🔵 Meta Ads":
     st.divider()
     st.subheader("📋 Todos os Anúncios")
     st.dataframe(df_anuncios, use_container_width=True)
+    
+    csv = df_anuncios.to_csv(index=False)
+    st.download_button("📥 Baixar CSV", csv, "anuncios_meta.csv", "text/csv")
 
 elif page == "🔴 Google Ads":
     st.title("🔴 Google Ads - Análise Detalhada")
+    
     df_google = gerar_dados_google()
     df_campanhas = gerar_campanhas_google()
     
@@ -171,7 +207,8 @@ elif page == "🔴 Google Ads":
     with col3:
         st.metric("✅ Conversões", f"{df_google['conversoes'].sum():.0f}")
     with col4:
-        st.metric("💹 ROI", f"{((df_google['faturamento'].sum() / df_google['gasto'].sum() - 1) * 100):.1f}%")
+        roi_google = ((df_google['faturamento'].sum() / df_google['gasto'].sum() - 1) * 100)
+        st.metric("💹 ROI", f"{roi_google:.1f}%")
     
     st.divider()
     
@@ -188,9 +225,13 @@ elif page == "🔴 Google Ads":
     st.divider()
     st.subheader("📋 Todas as Campanhas")
     st.dataframe(df_campanhas, use_container_width=True)
+    
+    csv = df_campanhas.to_csv(index=False)
+    st.download_button("📥 Baixar CSV", csv, "campanhas_google.csv", "text/csv")
 
 elif page == "⚫ TikTok Ads":
     st.title("⚫ TikTok Ads - Análise Detalhada")
+    
     df_tiktok = gerar_dados_tiktok()
     df_campanhas_tt = gerar_campanhas_tiktok()
     
@@ -202,7 +243,8 @@ elif page == "⚫ TikTok Ads":
     with col3:
         st.metric("✅ Conversões", f"{df_tiktok['conversoes'].sum():.0f}")
     with col4:
-        st.metric("💹 ROI", f"{((df_tiktok['faturamento'].sum() / df_tiktok['gasto'].sum() - 1) * 100):.1f}%")
+        roi_tiktok = ((df_tiktok['faturamento'].sum() / df_tiktok['gasto'].sum() - 1) * 100)
+        st.metric("💹 ROI", f"{roi_tiktok:.1f}%")
     
     st.divider()
     
@@ -219,14 +261,14 @@ elif page == "⚫ TikTok Ads":
     st.divider()
     st.subheader("📋 Todas as Campanhas")
     st.dataframe(df_campanhas_tt, use_container_width=True)
+    
+    csv = df_campanhas_tt.to_csv(index=False)
+    st.download_button("📥 Baixar CSV", csv, "campanhas_tiktok.csv", "text/csv")
 
 elif page == "🟠 Hotmart":
     st.title("🟠 Hotmart - Vendas")
-    df_hotmart = pd.DataFrame({
-        'data': pd.date_range(start=datetime.now() - timedelta(days=30), periods=30),
-        'vendas': np.random.randint(5, 20, 30),
-        'faturamento': np.random.uniform(500, 2000, 30),
-    })
+    
+    df_hotmart = gerar_dados_hotmart()
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -234,20 +276,23 @@ elif page == "🟠 Hotmart":
     with col2:
         st.metric("💰 Faturamento", f"R$ {df_hotmart['faturamento'].sum():.2f}")
     with col3:
-        st.metric("🎯 Ticket Médio", f"R$ {df_hotmart['faturamento'].sum() / df_hotmart['vendas'].sum():.2f}")
+        ticket_medio = df_hotmart['faturamento'].sum() / df_hotmart['vendas'].sum()
+        st.metric("🎯 Ticket Médio", f"R$ {ticket_medio:.2f}")
     
     st.divider()
+    
     fig = px.line(df_hotmart, x='data', y='faturamento', title='Faturamento Hotmart', markers=True)
     fig.update_layout(height=400, template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
+    
+    st.divider()
+    st.subheader("📋 Dados Detalhados")
+    st.dataframe(df_hotmart, use_container_width=True)
 
 elif page == "🟢 Kiwify":
     st.title("🟢 Kiwify - Vendas")
-    df_kiwify = pd.DataFrame({
-        'data': pd.date_range(start=datetime.now() - timedelta(days=30), periods=30),
-        'vendas': np.random.randint(3, 15, 30),
-        'faturamento': np.random.uniform(300, 1500, 30),
-    })
+    
+    df_kiwify = gerar_dados_kiwify()
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -255,15 +300,22 @@ elif page == "🟢 Kiwify":
     with col2:
         st.metric("💰 Faturamento", f"R$ {df_kiwify['faturamento'].sum():.2f}")
     with col3:
-        st.metric("🎯 Ticket Médio", f"R$ {df_kiwify['faturamento'].sum() / df_kiwify['vendas'].sum():.2f}")
+        ticket_medio = df_kiwify['faturamento'].sum() / df_kiwify['vendas'].sum()
+        st.metric("🎯 Ticket Médio", f"R$ {ticket_medio:.2f}")
     
     st.divider()
+    
     fig = px.line(df_kiwify, x='data', y='faturamento', title='Faturamento Kiwify', markers=True)
     fig.update_layout(height=400, template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
+    
+    st.divider()
+    st.subheader("📋 Dados Detalhados")
+    st.dataframe(df_kiwify, use_container_width=True)
 
 elif page == "🔌 Conexões":
     st.title("🔌 Configurar Conexões")
+    
     with st.form("conexoes_form"):
         st.subheader("Meta Ads")
         meta_token = st.text_input("Token Meta", type="password")
@@ -292,6 +344,7 @@ elif page == "🔌 Conexões":
 
 elif page == "🎯 Lead Scoring":
     st.title("🎯 Lead Scoring Dinâmico")
+    
     tab1, tab2 = st.tabs(["Criar Regras", "Pontuar Leads"])
     
     with tab1:
