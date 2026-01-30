@@ -1,14 +1,61 @@
 #!/usr/bin/env python
-"""Serviço para integração com Kiwify."""
+"""
+Serviço para integração com a API do Kiwify.
+
+Este serviço é responsável por buscar dados de vendas, produtos e outras
+informações da plataforma de infoprodutos Kiwify.
+
+Versão atual: Utiliza dados simulados para desenvolvimento e testes sem custo.
+"""
 
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-def get_kiwify_sales(start_date, end_date, api_token: str) -> pd.DataFrame:
-    """Obtém dados de vendas do Kiwify."""
-    
-    np.random.seed(321)
+def get_kiwify_performance(start_date: datetime, end_date: datetime, token: str, seller_id: str) -> pd.DataFrame:
+    """
+    Simula a busca de dados de performance do Kiwify.
+
+    Em uma implementação real, esta função faria chamadas à API do Kiwify.
+    Aqui, geramos um DataFrame com dados realistas para prototipação.
+
+    Args:
+        start_date: Data de início do período de análise.
+        end_date: Data de fim do período de análise.
+        token: Token de acesso à API (não utilizado na simulação).
+        seller_id: ID do vendedor no Kiwify (não utilizado na simulação).
+
+    Returns:
+        Um DataFrame do Pandas com as métricas de performance simuladas.
+    """
+    # Simulação de dados
+    date_range = pd.date_range(start_date, end_date)
+    data = []
+
+    for date in date_range:
+        # Gera dados diários com uma variação aleatória
+        vendas = np.random.randint(1, 10)
+        faturamento = vendas * np.random.uniform(30, 150)
+        comissao = faturamento * 0.15
+        lucro = faturamento - comissao
+        
+        data.append({
+            "date": date,
+            "platform": "Kiwify",
+            "sales": vendas,
+            "revenue": faturamento,
+            "commission": comissao,
+            "profit": lucro
+        })
+
+    return pd.DataFrame(data)
+
+
+def get_kiwify_products(start_date: datetime, end_date: datetime, token: str, seller_id: str) -> pd.DataFrame:
+    """
+    Retorna dados detalhados de produtos do Kiwify.
+    """
+    np.random.seed(654)
     num_products = 6
     
     products_data = []
@@ -16,24 +63,19 @@ def get_kiwify_sales(start_date, end_date, api_token: str) -> pd.DataFrame:
         vendas = np.random.randint(3, 30)
         preco_unitario = np.random.uniform(30, 150)
         faturamento = vendas * preco_unitario
-        comissao = faturamento * 0.15
-        lucro = faturamento - comissao
+        comissao_kiwify = faturamento * 0.15
+        lucro_liquido = faturamento - comissao_kiwify
         
         products_data.append({
-            "date": start_date + timedelta(days=np.random.randint(0, (end_date - start_date).days)),
-            "platform": "Kiwify",
-            "product_id": f"kiwify_{i+1:03d}",
-            "product_name": f"Produto Kiwify {i+1}",
-            "investment": 0,
-            "impressions": 0,
-            "clicks": 0,
-            "leads": 0,
-            "sales": vendas,
-            "revenue": faturamento,
-            "ctr": 0,
-            "cpc": 0,
-            "cpl": 0,
-            "roi": ((lucro / faturamento) * 100) if faturamento > 0 else 0
+            "ID Produto": f"kiwify_{i+1:03d}",
+            "Nome": f"Produto Kiwify {i+1}",
+            "Tipo": np.random.choice(["Infoproduto", "Assinatura", "Serviço"]),
+            "Vendas": vendas,
+            "Preço Unitário": preco_unitario,
+            "Faturamento": faturamento,
+            "Comissão Kiwify": comissao_kiwify,
+            "Lucro Líquido": lucro_liquido,
+            "Taxa Conversão": np.random.uniform(0.5, 3)
         })
     
     return pd.DataFrame(products_data)
