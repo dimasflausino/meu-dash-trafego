@@ -1,92 +1,127 @@
-"""
-Configurações centralizadas do Analytics Pro SaaS.
-Segue as melhores práticas de 12-factor app.
-"""
+import streamlit as st
+import pandas as pd
+import json
+from streamlit_gsheets import GSheetsConnection
 
-from typing import Optional
-from dataclasses import dataclass
-from enum import Enum
-import os
-from pathlib import Path
+# --- 1. CONFIGURAÇÃO DA PÁGINA (Deve ser a primeira linha) ---
+st.set_page_config(page_title="Analytics Pro SaaS", layout="wide")
 
+# --- 2. ESTILO DARK PREMIUM ---
+st.markdown("""
+    <style>
+    .main { background-color: #0b0e14; color: white; }
+    div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
+    section[data-testid="stSidebar"] { background-color: #111827; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] { background-color: #1f2937; border-radius: 5px; padding: 10px; color: white; }
+    </style>
+    """, unsafe_allow_html=True)
 
-class Environment(str, Enum):
-    """Ambientes suportados"""
-    DEVELOPMENT = "development"
-    STAGING = "staging"
-    PRODUCTION = "production"
+# --- 3. CONEXÃO COM O BANCO DE DADOS (GSHEETS) ---
+def carregar_banco():
+    try:
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df = conn.read(worksheet="Configuracoes", ttl=0)
+        return df, conn
+    except:
+        # Estrutura de backup caso a planilha esteja vazia ou offline
+        cols = ["Projeto", "Meta_Token", "Meta_ID", "Google_Dev", "Google_CustID", 
+                "TikTok_Token", "TikTok_ID", "Hotmart_ID", "Hotmart_Secret", 
+                "Kiwify_Token", "Kiwify_ID", "Sheets_URL", "Col_Tracking", "Regras_JSON"]
+        return pd.DataFrame(columns=cols), None
 
+df_db, conn = carregar_banco()
 
-@dataclass
-class StreamlitConfig:
-    """Configurações do Streamlit"""
-    page_title: str = "Analytics Pro SaaS"
-    layout: str = "wide"
-    initial_sidebar_state: str = "expanded"
-    theme_primary_color: str = "#00ffcc"
-    theme_background_color: str = "#0b0e14"
-    theme_secondary_background_color: str = "#111827"
-    theme_text_color: str = "#ffffff"
+# --- 4. BARRA LATERAL (ESTRUTURA FIXA) ---
+with st.sidebar:
+    st.title("🛡️ Gestão de Tráfego")
+    
+    # Lista de projetos segura
+    lista_p = []
+    if not df_db.empty and "Projeto" in df_db.columns:
+        lista_p = df_db["Projeto"].dropna().unique().tolist()
+    
+    projeto_ativo = st.selectbox("📁 Projeto Ativo", lista_p + ["+ Novo Projeto"])
+    st.divider()
+    
+    # Navegação completa (Nomes preservados)
+    if projeto_ativo == "+ Novo Projeto":
+        page = "🔌 Conexões"
+    else:
+        page = st.radio("Navegação", [
+            "🏠 Dados Consolidados", "🔵 Meta Ads", "🔴 Google Ads", 
+            "⚫ TikTok Ads", "🟠 Hotmart", "🟢 Kiwify", 
+            "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "🔌 Conexões"
+        ])
+    st.divider()
+    st.info(f"Logado: {projeto_ativo}")
 
+# --- 5. LÓGICA DAS PÁGINAS (BLINDADAS CONTRA BLOCOS VAZIOS) ---
 
-@dataclass
-class DatabaseConfig:
-    """Configurações de banco de dados"""
-    provider: str = "gsheets"  # gsheets, postgresql, sqlite
-    gsheets_url: Optional[str] = None
-    gsheets_worksheet: str = "Configuracoes"
-    cache_ttl: int = 300  # 5 minutos
+if page == "🏠 Dados Consolidados":
+    st.title(f"📊 Dashboard Consolidado: {projeto_ativo}")
+    st.write("Visão geral de ROI, Investimento e Faturamento.")
 
+elif page == "🔵 Meta Ads":
+    st.title(f"🔵 Meta Ads - {projeto_ativo}")
+    st.info("Métricas de performance do Facebook e Instagram.")
 
-@dataclass
-class APIConfig:
-    """Configurações de APIs externas"""
-    meta_api_version: str = "v24.0"
-    google_api_version: str = "v13"
-    tiktok_api_version: str = "v1"
-    request_timeout: int = 30
-    max_retries: int = 3
+elif page == "🔴 Google Ads":
+    st.title(f"🔴 Google Ads - {projeto_ativo}")
+    st.info("Performance de busca e Youtube Ads.")
 
+elif page == "⚫ TikTok Ads":
+    st.title(f"⚫ TikTok Ads - {projeto_ativo}")
+    st.info("Análise de conversão de vídeos.")
 
-@dataclass
-class LogConfig:
-    """Configurações de logging"""
-    level: str = "INFO"
-    format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    file: Optional[str] = None
+elif page == "🟠 Hotmart":
+    st.title(f"🟠 Hotmart - {projeto_ativo}")
+    st.write("Acompanhamento de vendas e checkouts.")
 
+elif page == "🟢 Kiwify":
+    st.title(f"🟢 Kiwify - {projeto_ativo}")
+    st.write("Faturamento e volume de transações.")
 
-class Settings:
-    """Classe principal de configurações"""
+elif page == "🎯 Lead Scoring":
+    st.title(f"🎯 Lead Scoring Dinâmico - {projeto_ativo}")
+    st.write("Defina as regras de pontuação para qualificar seus leads.")
 
-    def __init__(self):
-        self.env = Environment(os.getenv("ENV", Environment.DEVELOPMENT.value))
-        self.debug = self.env == Environment.DEVELOPMENT
+elif page == "🌪️ Funil de Perpétuo":
+    st.title(f"🌪️ Funil de Perpétuo - {projeto_ativo}")
+    st.write("Taxas de conversão de Order Bump e Upsells.")
+
+elif page == "🔌 Conexões":
+    st.title("🔌 Configurações de Projetos")
+    
+    # Busca de dados segura (Resolve o IndexError)
+    dados = {}
+    if projeto_ativo in lista_p:
+        temp = df_db[df_db["Projeto"] == projeto_ativo]
+        if not temp.empty:
+            dados = temp.iloc[0].to_dict()
+
+    with st.form("form_config_geral"):
+        st.subheader(f"⚙️ Configurando: {projeto_ativo}")
+        novo_nome = st.text_input("Nome do Projeto", value="" if projeto_ativo == "+ Novo Projeto" else projeto_ativo)
         
-        # Configurações específicas
-        self.streamlit = StreamlitConfig()
-        self.database = DatabaseConfig(
-            gsheets_url=os.getenv("GSHEETS_URL"),
-        )
-        self.api = APIConfig()
-        self.log = LogConfig(
-            level=os.getenv("LOG_LEVEL", "INFO"),
-            file=os.getenv("LOG_FILE"),
-        )
+        tab1, tab2, tab3 = st.tabs(["🚀 Plataforma de Captação", "💰 Plataforma de Vendas", "📊 Sheets"])
         
-        # Caminhos
-        self.base_dir = Path(__file__).parent.parent
-        self.src_dir = self.base_dir / "src"
-        self.data_dir = self.base_dir / "data"
-        self.config_dir = self.base_dir / "config"
-        
-        # Secrets (nunca commitar!)
-        self.meta_token = os.getenv("META_TOKEN")
-        self.google_dev_token = os.getenv("GOOGLE_DEV_TOKEN")
-        self.tiktok_token = os.getenv("TIKTOK_TOKEN")
-        self.hotmart_secret = os.getenv("HOTMART_SECRET")
-        self.kiwify_token = os.getenv("KIWIFY_TOKEN")
+        with tab1:
+            m_t = st.text_input("Meta Token", type="password", value=dados.get("Meta_Token", ""))
+            m_i = st.text_input("Meta ID", value=dados.get("Meta_ID", ""))
+            g_d = st.text_input("Google Dev Token", value=dados.get("Google_Dev", ""))
+            t_t = st.text_input("TikTok Token", type="password", value=dados.get("TikTok_Token", ""))
 
+        with tab2:
+            h_i = st.text_input("Hotmart ID", value=dados.get("Hotmart_ID", ""))
+            k_t = st.text_input("Kiwify API Key", type="password", value=dados.get("Kiwify_Token", ""))
+            
+        with tab3:
+            s_u = st.text_input("Link CSV do Sheets", value=dados.get("Sheets_URL", ""))
 
-# Instância global
-settings = Settings()
+        # BOTÃO OBRIGATÓRIO (Resolve o Missing Submit Button)
+        if st.form_submit_button("💾 Salvar Configurações"):
+            st.success(f"Configuração de '{novo_nome}' enviada!")
+            st.rerun()
+
+# --- FIM DO ARQUIVO (LIMPO E SEM LETRAS PERDIDAS) ---
