@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
 Serviço de Banco de Dados - Google Sheets
-
-Gerencia a conexão e operações com Google Sheets.
 """
 
 import streamlit as st
@@ -13,7 +11,7 @@ from typing import Optional, List
 def get_connection():
     """Retorna a conexão com Google Sheets."""
     try:
-        return st.connection("gsheets", type=GSheetsConnection)
+        return st.connection("gsheets", type=st.connections.SQLConnection)
     except:
         return None
 
@@ -28,47 +26,47 @@ def load_database(conn) -> pd.DataFrame:
 @st.cache_data(ttl=300)
 def get_projects_list() -> List[str]:
     """Retorna lista de projetos."""
-    conn = get_connection()
-    if conn is None:
+    try:
+        conn = get_connection()
+        if conn is None:
+            return []
+        df = load_database(conn)
+        if df.empty or "Projeto" not in df.columns:
+            return []
+        return df["Projeto"].dropna().unique().tolist()
+    except:
         return []
-    
-    df = load_database(conn)
-    if df.empty:
-        return []
-    
-    return df["Projeto"].unique().tolist()
 
 def get_project_config(project_name: str):
     """Retorna configuração do projeto."""
-    conn = get_connection()
-    if conn is None or not project_name:
+    try:
+        if not project_name:
+            return None
+        conn = get_connection()
+        if conn is None:
+            return None
+        df = load_database(conn)
+        if df.empty or "Projeto" not in df.columns:
+            return None
+        project = df[df["Projeto"] == project_name]
+        if project.empty:
+            return None
+        return project.iloc[0]
+    except:
         return None
-    
-    df = load_database(conn)
-    if df.empty:
-        return None
-    
-    project = df[df["Projeto"] == project_name]
-    if project.empty:
-        return None
-    
-    return project.iloc[0]
 
 def save_project_config(project_name: str, config: dict) -> bool:
     """Salva configuração do projeto."""
-    conn = get_connection()
-    if conn is None:
-        return False
-    
-    df = load_database(conn)
-    
-    if project_name in df["Projeto"].values:
-        df.loc[df["Projeto"] == project_name] = [project_name] + list(config.values())
-    else:
-        new_row = pd.DataFrame([[project_name] + list(config.values())], columns=df.columns)
-        df = pd.concat([df, new_row], ignore_index=True)
-    
     try:
+        conn = get_connection()
+        if conn is None:
+            return False
+        df = load_database(conn)
+        if project_name in df["Projeto"].values:
+            df.loc[df["Projeto"] == project_name] = [project_name] + list(config.values())
+        else:
+            new_row = pd.DataFrame([[project_name] + list(config.values())], columns=df.columns)
+            df = pd.concat([df, new_row], ignore_index=True)
         conn.update(worksheet="Configuracoes", data=df)
         st.cache_data.clear()
         return True
@@ -77,14 +75,12 @@ def save_project_config(project_name: str, config: dict) -> bool:
 
 def delete_project(project_name: str) -> bool:
     """Deleta um projeto."""
-    conn = get_connection()
-    if conn is None:
-        return False
-    
-    df = load_database(conn)
-    df = df[df["Projeto"] != project_name]
-    
     try:
+        conn = get_connection()
+        if conn is None:
+            return False
+        df = load_database(conn)
+        df = df[df["Projeto"] != project_name]
         conn.update(worksheet="Configuracoes", data=df)
         st.cache_data.clear()
         return True
