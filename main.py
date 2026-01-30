@@ -19,13 +19,13 @@ with st.sidebar:
     
     # Lista de navegação completa conforme seu pedido
     page = st.radio("Navegação", [
-        "🏠 Visão Geral", 
-        "🔵 Meta Ads (Facebook)", 
+        "🏠 Dados Consolidados", 
+        "🔵 Meta Ads", 
         "🔴 Google Ads", 
         "⚫ TikTok Ads", 
         "🟠 Hotmart", 
         "🟢 Kiwify", 
-        "🎯 Qualidade por Ad (Lead Scoring)",
+        "🎯 Lead Scoring",
         "🌪️ Funil de Perpétuo",
         "🔌 Conexões"
     ])
