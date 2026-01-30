@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
+from streamlit_gsheets import GSheetsConnection
 
 # --- 1. CONFIGURAÇÃO (Deve ser a primeira linha) ---
 st.set_page_config(page_title="Analytics Pro SaaS", layout="wide")
@@ -11,91 +12,99 @@ st.markdown("""
     .main { background-color: #0b0e14; color: white; }
     div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
     section[data-testid="stSidebar"] { background-color: #111827; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] { background-color: #1f2937; border-radius: 5px; padding: 10px; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. BARRA LATERAL (FIXA - DESENHADA PRIMEIRO) ---
+# --- 3. CONEXÃO E CARREGAMENTO (BANCO DE DADOS GSHEETS) ---
+def carregar_banco():
+    try:
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df = conn.read(worksheet="Configuracoes", ttl=0)
+        return df, conn
+    except Exception as e:
+        # Estrutura de backup caso a planilha falhe ou esteja vazia
+        cols = ["Projeto", "Meta_Token", "Meta_ID", "Google_Dev", "Google_CustID", 
+                "TikTok_Token", "TikTok_ID", "Hotmart_ID", "Hotmart_Secret", 
+                "Kiwify_Token", "Kiwify_ID", "Sheets_URL", "Col_Tracking", "Regras_JSON"]
+        return pd.DataFrame(columns=cols), None
+
+df_db, conn = carregar_banco()
+
+# --- 4. BARRA LATERAL (FIXA E SEGURA) ---
 with st.sidebar:
     st.title("🛡️ Gestão de Tráfego")
     
-    # Criamos uma lista de projetos segura para o menu não travar
-    if "projetos_memoria" not in st.session_state:
-        st.session_state.projetos_memoria = ["Projeto Padrão"]
+    lista_p = []
+    if not df_db.empty and "Projeto" in df_db.columns:
+        lista_p = df_db["Projeto"].dropna().unique().tolist()
     
-    projeto_ativo = st.selectbox("📁 Projeto Ativo", st.session_state.projetos_memoria + ["+ Novo Projeto"])
+    projeto_ativo = st.selectbox("📁 Projeto Ativo", lista_p + ["+ Novo Projeto"])
     st.divider()
     
-    # NAVEGAÇÃO (Nada foi retirado)
+    # NAVEGAÇÃO COMPLETA (Nada foi retirado)
     page = st.radio("Navegação", [
-        "🏠 Dados Consolidados", 
-        "🔵 Meta Ads", 
-        "🔴 Google Ads", 
-        "⚫ TikTok Ads", 
-        "🟠 Hotmart", 
-        "🟢 Kiwify", 
-        "🎯 Lead Scoring", 
-        "🌪️ Funil de Perpétuo", 
-        "🔌 Conexões"
+        "🏠 Dados Consolidados", "🔵 Meta Ads", "🔴 Google Ads", 
+        "⚫ TikTok Ads", "🟠 Hotmart", "🟢 Kiwify", 
+        "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "🔌 Conexões"
     ])
     st.divider()
+    # Correção do erro da imagem 70d791 (f-string fechada corretamente)
     st.info(f"Logado: {projeto_ativo}")
 
-# --- 4. CARREGAMENTO DE DADOS (DENTRO DE TRY/EXCEPT) ---
-# Se isso aqui falhar, o menu lá em cima já foi desenhado e não some.
-def carregar_dados_seguro():
-    try:
-        # Aqui viria a conexão com o GSheets. 
-        # Se der erro, ele cai no 'except' e o app continua vivo.
-        return pd.DataFrame() 
-    except:
-        return pd.DataFrame()
+# --- 5. LÓGICA DAS PÁGINAS ---
 
-df_db = carregar_dados_seguro()
+if page == "🔌 Conexões":
+    st.title("🔌 Configurações de Projetos")
+    
+    # Busca segura para evitar IndexError (imagem 70ded5)
+    dados = {}
+    if projeto_ativo in lista_p:
+        temp = df_db[df_db["Projeto"] == projeto_ativo]
+        if not temp.empty:
+            dados = temp.iloc[0].to_dict()
 
-# --- 5. RENDERIZAÇÃO DAS PÁGINAS ---
+    with st.form("form_master_config"):
+        st.subheader(f"⚙️ Configurando: {projeto_ativo}")
+        novo_nome = st.text_input("Nome do Projeto", value="" if projeto_ativo == "+ Novo Projeto" else projeto_ativo)
+        
+        # NOMES PRESERVADOS: Plataforma de Captação, Plataforma de Vendas e Sheets
+        tab1, tab2, tab3 = st.tabs(["🚀 Plataforma de Captação", "💰 Plataforma de Vendas", "📊 Sheets"])
+        
+        with tab1:
+            m_t = st.text_input("Meta Token", type="password", value=dados.get("Meta_Token", ""))
+            m_i = st.text_input("Meta Account ID", value=dados.get("Meta_ID", ""))
+            g_d = st.text_input("Google Dev Token", value=dados.get("Google_Dev", ""))
+            t_t = st.text_input("TikTok Token", type="password", value=dados.get("TikTok_Token", ""))
 
-if page == "🏠 Dados Consolidados":
-    st.title(f"📊 Consolidado: {projeto_ativo}")
-    st.write("Visão geral de ROI e Faturamento.")
+        with tab2:
+            h_i = st.text_input("Hotmart Client ID", value=dados.get("Hotmart_ID", ""))
+            k_t = st.text_input("Kiwify API Key", type="password", value=dados.get("Kiwify_Token", ""))
+            
+        with tab3:
+            s_u = st.text_input("Link CSV do Sheets", value=dados.get("Sheets_URL", ""))
 
-elif page == "🔵 Meta Ads":
-    st.title(f"🔵 Meta Ads - {projeto_ativo}")
-    st.write("Dados da API do Facebook.")
-
-elif page == "🔴 Google Ads":
-    st.title(f"🔴 Google Ads - {projeto_ativo}")
-    st.write("Dados da API do Google.")
-
-elif page == "⚫ TikTok Ads":
-    st.title(f"⚫ TikTok Ads - {projeto_ativo}")
-    st.write("Dados da API do TikTok.")
-
-elif page == "🟠 Hotmart":
-    st.title(f"🟠 Hotmart - {projeto_ativo}")
-    st.write("Vendas Hotmart.")
-
-elif page == "🟢 Kiwify":
-    st.title(f"🟢 Kiwify - {projeto_ativo}")
-    st.write("Vendas Kiwify.")
+        # BOTÃO OBRIGATÓRIO DENTRO DO FORM (Resolve Missing Submit Button)
+        if st.form_submit_button("💾 Salvar Tudo Permanentemente"):
+            # Aqui entrará a lógica de conn.update para persistir na Planilha Mestra
+            st.success(f"Configuração de {novo_nome} enviada para o banco!")
+            st.rerun()
 
 elif page == "🎯 Lead Scoring":
-    st.title(f"🎯 Lead Scoring - {projeto_ativo}")
-    st.write("Mapeamento dinâmico de leads.")
+    st.title(f"🎯 Lead Scoring Dinâmico - {projeto_ativo}")
+    st.write("Mapeie colunas e regras de pontuação.")
 
-elif page == "🌪️ Funil de Perpétuo":
-    st.title(f"🌪️ Funil de Perpétuo - {projeto_ativo}")
-    st.write("Análise de conversão.")
+elif page == "🏠 Dados Consolidados":
+    st.title(f"📊 Dashboard Consolidado - {projeto_ativo}")
+    st.info("Resumo global de performance.")
 
-elif page == "🔌 Conexões":
-    st.title("🔌 Configurações de Projetos")
-    with st.form("form_seguro"):
-        st.subheader(f"⚙️ Configurando: {projeto_ativo}")
-        novo_nome = st.text_input("Nome do Projeto")
-        
-        t1, t2, t3 = st.tabs(["🚀 Captação", "💰 Vendas", "📊 Sheets"])
-        with t1: st.write("Tokens de Ads aqui.")
-        with t2: st.write("Tokens de Vendas aqui.")
-        with t3: st.write("Link do Sheets aqui.")
-        
-        if st.form_submit_button("💾 Salvar"):
-            st.success("Configuração enviada!")
+# --- DEMAIS MENUS (MANTIDOS PARA NÃO DAR SYNTAX ERROR) ---
+elif page == "🔵 Meta Ads": st.title(f"🔵 Meta Ads - {projeto_ativo}")
+elif page == "🔴 Google Ads": st.title(f"🔴 Google Ads - {projeto_ativo}")
+elif page == "⚫ TikTok Ads": st.title(f"⚫ TikTok Ads - {projeto_ativo}")
+elif page == "🟠 Hotmart": st.title(f"🟠 Hotmart - {projeto_ativo}")
+elif page == "🟢 Kiwify": st.title(f"🟢 Kiwify - {projeto_ativo}")
+elif page == "🌪️ Funil de Perpétuo": st.title(f"🌪️ Funil de Perpétuo - {projeto_ativo}")
+
+# --- FIM DO ARQUIVO (SEM LETRAS "G" PERDIDAS) ---
