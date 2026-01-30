@@ -13,11 +13,10 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- MENU LATERAL (TODOS OS SEUS MENUS ESTÃO AQUI) ---
+# --- MENU LATERAL (NOMES ATUALIZADOS POR VOCÊ) ---
 with st.sidebar:
     st.title("🛡️ Gestão de Tráfego")
     
-    # Lista de navegação completa conforme seu pedido
     page = st.radio("Navegação", [
         "🏠 Dados Consolidados", 
         "🔵 Meta Ads", 
@@ -33,43 +32,49 @@ with st.sidebar:
     st.divider()
     st.info("Usuário: Administrador")
 
-# --- LÓGICA DAS PÁGINAS (CONSTRUINDO O CONTEÚDO) ---
+# --- LÓGICA DAS PÁGINAS ---
 
-if page == "🏠 Visão Geral":
-    st.title("Consolidado de Performance")
-    st.write("Resumo geral de todas as suas fontes de tráfego e vendas.")
-    # Aqui colocaremos os cartões de ROAS Global e Lucro Total
+if page == "🏠 Dados Consolidados":
+    st.title("📊 Dados Consolidados")
+    st.write("Resumo geral de performance (VK Metrics Style).")
+    # Futuro: KPIs de ROI Global, Faturamento Total e Gasto Total
 
-elif page == "🔵 Meta Ads (Facebook)":
-    st.title("Performance Meta Ads")
-    st.write("Métricas de CTR, CPC e Gasto por Campanha.")
+elif page == "🔵 Meta Ads":
+    st.title("🔵 Performance Meta Ads")
+    st.write("Métricas de CTR, CPC e Gasto por Campanha vindas da API.")
 
 elif page == "🔴 Google Ads":
-    st.title("Performance Google Ads")
+    st.title("🔴 Performance Google Ads")
     st.write("Análise de Rede de Pesquisa e Youtube Ads.")
 
 elif page == "⚫ TikTok Ads":
-    st.title("Performance TikTok Ads")
+    st.title("⚫ Performance TikTok Ads")
     st.write("Métricas de retenção e conversão de vídeos.")
 
 elif page == "🟠 Hotmart":
-    st.title("Vendas Hotmart")
-    st.write("Acompanhamento de vendas, boletos gerados e cartões aprovados.")
+    st.title("🟠 Vendas Hotmart")
+    st.write("Status de vendas e conversão de checkout.")
 
 elif page == "🟢 Kiwify":
-    st.title("Vendas Kiwify")
+    st.title("🟢 Vendas Kiwify")
     st.write("Faturamento líquido e volume de transações.")
 
-elif page == "🎯 Qualidade por Ad (Lead Scoring)":
-    st.title("Cruzamento: Meta Ads vs. Leads Qualificados")
-    st.subheader("Onde o tráfego encontra o lucro real")
-    # Aqui entra o código de cruzamento (UTM do Sheets + Custo do Meta)
-    st.write("Esta página mostra qual anúncio específico está trazendo o lead que você quer.")
+elif page == "🎯 Lead Scoring":
+    st.title("🎯 Lead Scoring & Performance de Ads")
+    st.subheader("Cruzamento: Meta Ads vs. Leads Qualificados (Sheets)")
+    
+    # Esta área cruzará o custo do Ad com a qualidade do Lead no Sheets
+    st.info("Aqui mostraremos: Nome do Ad | Quantidade | Custo | Leads Qualificados | CPL Real")
+    
+    # Espaço para o link do Sheets que você usa
+    link_sheets = st.text_input("Cole aqui o link CSV da sua planilha de Leads")
+    if link_sheets:
+        st.write("Analisando qualidade por anúncio...")
 
 elif page == "🌪️ Funil de Perpétuo":
-    st.title("Análise de Checkout (Upsell/Order Bump)")
-    st.write("Cálculo de taxa de conversão entre produtos separados.")
+    st.title("🌪️ Funil de Perpétuo")
+    st.write("Taxa de conversão de Order Bump, Upsell e Downsell.")
 
 elif page == "🔌 Conexões":
-    st.title("Configurações e Chaves de API")
-    st.warning("Insira seus tokens aqui para ativar os menus acima.")
+    st.title("🔌 Configurações e Chaves de API")
+    st.warning("Insira seus tokens de API abaixo para ativar os dados reais.")
