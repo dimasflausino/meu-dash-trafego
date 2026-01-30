@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Analytics Pro - Estilo VK Metrics", layout="wide")
+st.set_page_config(page_title="Analytics Pro - Multi-Projeto", layout="wide")
 
 # --- CSS PARA ESTILO DARK PREMIUM ---
 st.markdown("""
@@ -13,9 +13,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- MENU LATERAL (NOMES ATUALIZADOS POR VOCÊ) ---
+# --- MENU LATERAL ---
 with st.sidebar:
     st.title("🛡️ Gestão de Tráfego")
+    
+    # NOVO: Seleção de Projeto
+    projeto_ativo = st.selectbox("📁 Projeto Ativo", ["Projeto Alpha", "Projeto Beta", "Novo Projeto..."])
+    st.divider()
     
     page = st.radio("Navegação", [
         "🏠 Dados Consolidados", 
@@ -30,51 +34,54 @@ with st.sidebar:
     ])
     
     st.divider()
-    st.info("Usuário: Administrador")
+    st.info(f"Projeto: {projeto_ativo}")
 
-# --- LÓGICA DAS PÁGINAS ---
+# --- LÓGICA DE DADOS POR PROJETO ---
+# Aqui o sistema entende qual API usar baseado no projeto selecionado
+def carregar_configuracoes(nome_projeto):
+    # Futuramente, isso buscará de um banco de dados ou arquivo seguro
+    # Por enquanto, criamos um espaço na memória
+    if "configs" not in st.session_state:
+        st.session_state["configs"] = {}
+    return st.session_state["configs"].get(nome_projeto, {})
+
+# --- PÁGINAS ---
 
 if page == "🏠 Dados Consolidados":
-    st.title("📊 Dados Consolidados")
-    st.write("Resumo geral de performance (VK Metrics Style).")
-    # Futuro: KPIs de ROI Global, Faturamento Total e Gasto Total
-
-elif page == "🔵 Meta Ads":
-    st.title("🔵 Performance Meta Ads")
-    st.write("Métricas de CTR, CPC e Gasto por Campanha vindas da API.")
-
-elif page == "🔴 Google Ads":
-    st.title("🔴 Performance Google Ads")
-    st.write("Análise de Rede de Pesquisa e Youtube Ads.")
-
-elif page == "⚫ TikTok Ads":
-    st.title("⚫ Performance TikTok Ads")
-    st.write("Métricas de retenção e conversão de vídeos.")
-
-elif page == "🟠 Hotmart":
-    st.title("🟠 Vendas Hotmart")
-    st.write("Status de vendas e conversão de checkout.")
-
-elif page == "🟢 Kiwify":
-    st.title("🟢 Vendas Kiwify")
-    st.write("Faturamento líquido e volume de transações.")
+    st.title(f"📊 Consolidado: {projeto_ativo}")
+    st.write(f"Exibindo métricas exclusivas do **{projeto_ativo}**.")
 
 elif page == "🎯 Lead Scoring":
-    st.title("🎯 Lead Scoring & Performance de Ads")
-    st.subheader("Cruzamento: Meta Ads vs. Leads Qualificados (Sheets)")
-    
-    # Esta área cruzará o custo do Ad com a qualidade do Lead no Sheets
-    st.info("Aqui mostraremos: Nome do Ad | Quantidade | Custo | Leads Qualificados | CPL Real")
-    
-    # Espaço para o link do Sheets que você usa
-    link_sheets = st.text_input("Cole aqui o link CSV da sua planilha de Leads")
-    if link_sheets:
-        st.write("Analisando qualidade por anúncio...")
-
-elif page == "🌪️ Funil de Perpétuo":
-    st.title("🌪️ Funil de Perpétuo")
-    st.write("Taxa de conversão de Order Bump, Upsell e Downsell.")
+    st.title(f"🎯 Lead Scoring - {projeto_ativo}")
+    # O link do Sheets agora é salvo por projeto
+    link_key = f"sheets_{projeto_ativo}"
+    url = st.text_input("Link CSV do Sheets deste projeto", key=link_key)
+    if url:
+        st.success(f"Planilha vinculada ao {projeto_ativo}")
 
 elif page == "🔌 Conexões":
-    st.title("🔌 Configurações e Chaves de API")
-    st.warning("Insira seus tokens de API abaixo para ativar os dados reais.")
+    st.title(f"🔌 Configurações: {projeto_ativo}")
+    st.subheader(f"Configure as APIs para o {projeto_ativo}")
+    
+    # Campos que mudam conforme o projeto selecionado
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input(f"Token Meta Ads ({projeto_ativo})", type="password")
+        st.text_input(f"ID da Conta de Anúncios", placeholder="act_123456")
+    with col2:
+        st.text_input(f"API Key Kiwify ({projeto_ativo})", type="password")
+        st.text_input(f"Secret Hotmart", type="password")
+
+# --- MANTENDO AS OUTRAS PÁGINAS (SEM ALTERAÇÕES) ---
+elif page == "🔵 Meta Ads":
+    st.title(f"🔵 Meta Ads - {projeto_ativo}")
+elif page == "🔴 Google Ads":
+    st.title(f"🔴 Google Ads - {projeto_ativo}")
+elif page == "⚫ TikTok Ads":
+    st.title(f"⚫ TikTok Ads - {projeto_ativo}")
+elif page == "🟠 Hotmart":
+    st.title(f"🟠 Hotmart - {projeto_ativo}")
+elif page == "🟢 Kiwify":
+    st.title(f"🟢 Kiwify - {projeto_ativo}")
+elif page == "🌪️ Funil de Perpétuo":
+    st.title(f"🌪️ Funil de Perpétuo - {projeto_ativo}")
