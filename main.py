@@ -1,75 +1,27 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 
-# --- CONFIGURAÇÃO VISUAL (DARK MODE PREMIUM) ---
-st.set_page_config(page_title="Consolidado de Vendas - Pro", layout="wide")
+# --- SISTEMA DE NAVEGAÇÃO ---
+st.sidebar.title("Navegação")
+page = st.sidebar.radio("Ir para:", ["🏠 Visão Geral", "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "⚙️ Configurações"])
 
-# CORREÇÃO: O termo correto é unsafe_allow_html
-st.markdown("""
-    <style>
-    .main { background-color: #0b0e14; color: white; }
-    div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
-    .stPlotlyChart { border: 1px solid #1f2937; border-radius: 15px; }
-    </style>
-    """, unsafe_allow_html=True)
+if page == "🏠 Visão Geral":
+    st.title("Consolidado de Tráfego")
+    # Aqui entra o código que já fizemos de gráficos e KPIs
 
-# --- FUNÇÕES DE CONEXÃO (O "Cérebro" das APIs) ---
+elif page == "🎯 Lead Scoring":
+    st.title("Inteligência de Leads")
+    st.write("Analise a qualidade dos seus leads por profissão e resposta.")
+    # Aqui criaremos a tabela que filtra: Profissão == "Dono de Empresa"
 
-def get_data_kiwify(api_key):
-    # Simulação de dados (vamos conectar a API real no próximo passo)
-    return {"vendas": 15200.00, "quantidade": 45}
+elif page == "🌪️ Funil de Perpétuo":
+    st.title("Métricas de Checkout")
+    # Colunas para Order Bump, Upsell e Downsell
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric("Taxa de Order Bump", "28%", delta="3%")
+    with c2:
+        st.metric("Taxa de Upsell 1", "12%", delta="-1%")
 
-def get_data_hotmart(client_id, secret):
-    # Simulação de dados
-    return {"vendas": 22450.00, "quantidade": 62}
-
-# --- INTERFACE DO USUÁRIO ---
-st.title("📊 Gestão Centralizada de Tráfego e Vendas")
-st.write("Conectado: **Hotmart** | **Kiwify**")
-
-with st.sidebar:
-    st.header("Configurações de API")
-    st.info("Insira suas chaves abaixo para sincronizar")
-    kiwify_key = st.text_input("Token Kiwify", type="password")
-    hot_id = st.text_input("Client ID Hotmart")
-    
-# --- PROCESSAMENTO DOS DADOS ---
-vendas_kiwify = get_data_kiwify(kiwify_key)
-vendas_hotmart = get_data_hotmart(hot_id, "")
-
-faturamento_total = vendas_kiwify["vendas"] + vendas_hotmart["vendas"]
-vendas_totais = vendas_kiwify["quantidade"] + vendas_hotmart["quantidade"]
-
-# --- BLOCO DE KPIs (ESTILO VK METRICS) ---
-c1, c2, c3, c4 = st.columns(4)
-
-with c1:
-    st.metric("Faturamento Acumulado", f"R$ {faturamento_total:,.2f}", delta="15% vs ontem")
-with c2:
-    st.metric("Total de Vendas", f"{vendas_totais} unid.")
-with c3:
-    st.metric("Ticket Médio", f"R$ {faturamento_total/vendas_totais:,.2f}")
-with c4:
-    st.metric("ROI Estimado", "4.2x", delta="0.3x", delta_color="normal")
-
-st.markdown("---")
-
-# --- GRÁFICO DE COMPARAÇÃO DE PLATAFORMAS ---
-col_left, col_right = st.columns([1, 1])
-
-with col_left:
-    st.subheader("Faturamento por Origem")
-    df_pizza = pd.DataFrame({
-        "Plataforma": ["Kiwify", "Hotmart"],
-        "Valor": [vendas_kiwify["vendas"], vendas_hotmart["vendas"]]
-    })
-    fig = px.pie(df_pizza, values='Valor', names='Plataforma', hole=.5, 
-                 color_discrete_sequence=['#00ffcc', '#ff4b4b'], template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-with col_right:
-    st.subheader("Meta Diária de Faturamento")
-    progresso = 65 
-    st.progress(progresso)
-    st.write(f"Você atingiu **{progresso}%** da sua meta de R$ 50.000,00")
+elif page == "⚙️ Configurações":
+    st.title("Conexões de API")
+    # Onde você coloca os tokens da Kiwify, Facebook, etc.
