@@ -1,111 +1,64 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Analytics Pro - Multi-Projeto 2026", layout="wide")
+st.set_page_config(page_title="Analytics Pro 2026", layout="wide")
 
-# --- INICIALIZAÇÃO DA MEMÓRIA (BANCO DE DADOS TEMPORÁRIO) ---
-if "banco_projetos" not in st.session_state:
-    st.session_state["banco_projetos"] = {
-        "Projeto Exemplo": {
-            "meta_token": "", "meta_account_id": "",
-            "google_dev_token": "", "google_customer_id": "",
-            "kiwify_id": "", "kiwify_secret": "",
-            "sheets_leads": ""
-        }
-    }
+# --- CONEXÃO COM A PLANILHA MESTRA (BANCO DE DADOS) ---
+# Aqui o app se conecta à sua planilha de configurações
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- CSS DARK PREMIUM ---
-st.markdown("""
-    <style>
-    .main { background-color: #0b0e14; color: white; }
-    div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
-    section[data-testid="stSidebar"] { background-color: #111827; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { background-color: #1f2937; border-radius: 5px; padding: 10px; color: white; }
-    </style>
-    """, unsafe_allow_html=True)
+def carregar_projetos():
+    try:
+        return conn.read(worksheet="Configuracoes", ttl=0)
+    except:
+        return pd.DataFrame(columns=["Projeto", "Meta_Token", "Kiwify_Token", "Sheets_URL"])
 
 # --- MENU LATERAL ---
 with st.sidebar:
-    st.title("🛡️ Painel Administrativo")
+    st.title("🛡️ Gestão de Tráfego")
+    df_projetos = carregar_projetos()
+    lista_nomes = df_projetos["Projeto"].tolist() if not df_projetos.empty else []
     
-    lista_projetos = list(st.session_state["banco_projetos"].keys())
-    projeto_ativo = st.selectbox("📁 Selecione o Projeto", lista_projetos + ["+ Criar Novo Projeto"])
-    
+    projeto_ativo = st.selectbox("📁 Projeto Ativo", lista_nomes + ["+ Novo Projeto"])
     st.divider()
     
-    # Se o usuário selecionar a opção de criar, ele trava na aba de conexões
-    if projeto_ativo == "+ Criar Novo Projeto":
-        page = "🔌 Conexões"
-    else:
-        page = st.radio("Navegação", [
-            "🏠 Dados Consolidados", "🔵 Meta Ads", "🔴 Google Ads", 
-            "⚫ TikTok Ads", "🟠 Hotmart", "🟢 Kiwify", 
-            "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "🔌 Conexões"
-        ])
+    page = st.radio("Navegação", [
+        "🏠 Dados Consolidados", "🔵 Meta Ads", "🟢 Kiwify", 
+        "🎯 Lead Scoring", "🔌 Conexões"
+    ])
 
-# --- LÓGICA DAS PÁGINAS ---
-
+# --- PÁGINA DE CONEXÕES (ONDE A MÁGICA ACONTECE) ---
 if page == "🔌 Conexões":
-    st.title("🔌 Configurações de API por Projeto")
+    st.title("🔌 Configurações de Projetos")
     
-    if projeto_ativo == "+ Criar Novo Projeto":
-        st.subheader("🆕 Cadastro de Novo Projeto")
-        with st.form("form_novo_projeto"):
-            nome_projeto = st.text_input("Nome do Projeto/Cliente")
-            st.info("Ao clicar em salvar, o projeto será adicionado à lista lateral.")
-            if st.form_submit_button("Salvar e Iniciar Configuração"):
-                if nome_projeto and nome_projeto not in st.session_state["banco_projetos"]:
-                    st.session_state["banco_projetos"][nome_projeto] = {}
-                    st.success(f"Projeto '{nome_projeto}' criado! Agora configure os tokens abaixo.")
-                    st.rerun()
+    with st.form("form_projeto"):
+        nome = st.text_input("Nome do Projeto", value="" if projeto_ativo == "+ Novo Projeto" else projeto_ativo)
+        token_meta = st.text_input("Token Meta Ads", type="password")
+        token_kiwi = st.text_input("Token Kiwify", type="password")
+        url_leads = st.text_input("Link CSV Leads (Google Sheets)")
+        
+        if st.form_submit_button("💾 Salvar Projeto Permanentemente"):
+            # Lógica para salvar na Planilha Mestra
+            novo_dado = pd.DataFrame([{
+                "Projeto": nome,
+                "Meta_Token": token_meta,
+                "Kiwify_Token": token_kiwi,
+                "Sheets_URL": url_leads
+            }])
+            # Atualiza a planilha (Isso aqui substitui o banco de dados caro)
+            df_atualizado = pd.concat([df_projetos, novo_dado]).drop_duplicates(subset=['Projeto'], keep='last')
+            conn.update(worksheet="Configuracoes", data=df_atualizado)
+            st.success(f"Projeto {nome} salvo com sucesso!")
+            st.rerun()
 
+# --- PÁGINA DE LEAD SCORING ---
+elif page == "🎯 Lead Scoring":
+    st.title(f"🎯 Lead Scoring: {projeto_ativo}")
+    if projeto_ativo != "+ Novo Projeto":
+        dados_projeto = df_projetos[df_projetos["Projeto"] == projeto_ativo].iloc[0]
+        st.write(f"Conectado à planilha: {dados_projeto['Sheets_URL']}")
+        # Aqui o código puxa os leads usando a URL salva
     else:
-        st.subheader(f"⚙️ Editando: {projeto_ativo}")
-        
-        # ABAS PARA CADA PLATAFORMA (DOCUMENTAÇÃO 2026)
-        tab_meta, tab_google, tab_vendas, tab_leads = st.tabs(["Meta Ads", "Google Ads", "Checkouts", "Sheets & Leads"])
-        
-        with tab_meta:
-            st.write("### Integração Meta Ads v24.0")
-            st.text_input("Access Token (System User)", type="password", key=f"mt_{projeto_ativo}")
-            st.text_input("Ad Account ID (act_xxxxxxxx)", placeholder="act_", key=f"mid_{projeto_ativo}")
-            
-        with tab_google:
-            st.write("### Google Ads API")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.text_input("Developer Token", key=f"gdev_{projeto_ativo}")
-                st.text_input("Customer ID", key=f"gcid_{projeto_ativo}")
-            with col2:
-                st.text_input("Client ID", key=f"gcli_{projeto_ativo}")
-                st.text_input("Refresh Token", type="password", key=f"gref_{projeto_ativo}")
-
-        with tab_vendas:
-            st.write("### Hotmart & Kiwify")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Hotmart**")
-                st.text_input("Client ID", key=f"hcli_{projeto_ativo}")
-                st.text_input("Client Secret", type="password", key=f"hsec_{projeto_ativo}")
-            with col2:
-                st.write("**Kiwify**")
-                st.text_input("Client ID (API Key)", key=f"kcli_{projeto_ativo}")
-                st.text_input("Client Secret", type="password", key=f"ksec_{projeto_ativo}")
-
-        with tab_leads:
-            st.write("### Google Sheets (Lead Scoring)")
-            st.text_input("URL do CSV da Planilha de Leads", key=f"sheet_{projeto_ativo}")
-            st.text_input("Coluna do Nome do Ad (UTM)", value="utm_content", key=f"utm_{projeto_ativo}")
-
-        if st.button("💾 Salvar Configurações do Projeto"):
-            st.success(f"Configurações de '{projeto_ativo}' salvas com sucesso!")
-
-# --- PÁGINA DE VISÃO GERAL ---
-elif page == "🏠 Dados Consolidados":
-    st.title(f"📊 Consolidado: {projeto_ativo}")
-    st.metric("ROI Global", "4.5x", delta="0.2x")
-    st.write(f"Conectado ao Sheets: {st.session_state.get(f'sheet_{projeto_ativo}', 'Não configurado')}")
-
-# (As outras páginas seguem a mesma lógica de projeto_ativo...)
+        st.warning("Selecione um projeto válido para ver o Lead Scoring.")
