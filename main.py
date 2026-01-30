@@ -1,101 +1,71 @@
 import streamlit as st
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
+import json
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Analytics Pro SaaS", layout="wide")
-
-# --- CSS DARK PREMIUM ---
-st.markdown("""
-    <style>
-    .main { background-color: #0b0e14; color: white; }
-    div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
-    section[data-testid="stSidebar"] { background-color: #111827; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { background-color: #1f2937; border-radius: 5px; padding: 10px; color: white; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- CONEXÃO COM O BANCO DE DADOS (SHEETS MESTRE) ---
-try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-except:
-    st.sidebar.warning("⚠️ Banco de Dados offline. Configure o secrets.toml.")
-
-def carregar_banco():
-    try:
-        return conn.read(worksheet="Configuracoes", ttl=0)
-    except:
-        cols = ["Projeto", "Meta_Token", "Meta_ID", "Google_Dev", "Google_CustID", 
-                "TikTok_Token", "TikTok_ID", "Hotmart_ID", "Hotmart_Secret", 
-                "Kiwify_Token", "Kiwify_ID", "Sheets_URL", "Col_Tracking", "Regras_JSON"]
-        return pd.DataFrame(columns=cols)
-
-# --- MENU LATERAL COMPLETO ---
-with st.sidebar:
-    st.title("🛡️ Gestão de Tráfego")
-    
-    df_db = carregar_banco()
-    lista_projetos = df_db["Projeto"].tolist() if not df_db.empty else ["Projeto Padrão"]
-    
-    projeto_ativo = st.selectbox("📁 Projeto Ativo", lista_projetos + ["+ Novo Projeto"])
-    st.divider()
-    
-    if projeto_ativo == "+ Novo Projeto":
-        page = "🔌 Conexões"
-    else:
-        page = st.radio("Navegação", [
-            "🏠 Dados Consolidados", "🔵 Meta Ads", "🔴 Google Ads", 
-            "⚫ TikTok Ads", "🟠 Hotmart", "🟢 Kiwify", 
-            "🎯 Lead Scoring", "🌪️ Funil de Perpétuo", "🔌 Conexões"
-        ])
-
-# --- FUNÇÕES DE LÓGICA ---
-def aplicar_scoring(df, projeto):
-    # Aqui buscaremos as regras salvas no banco para o projeto
+# --- FUNÇÃO DE CÁLCULO SAAS (ESCALÁVEL) ---
+def processar_score_pro(df, regras_json):
+    """Aplica regras de pontuação dinâmicas vindas de um JSON"""
     df['Score_Total'] = 0
-    # Lógica de scoring será inserida aqui
+    try:
+        regras = json.loads(regras_json) if isinstance(regras_json, str) else regras_json
+        for r in regras:
+            col, val, pts = r['coluna'], r['valor'], r['pontos']
+            if col in df.columns:
+                # O uso de .str.contains garante que pegamos variações (ex: "Empresário" e "Sou empresário")
+                df.loc[df[col].astype(str).str.contains(val, case=False, na=False), 'Score_Total'] += pts
+    except Exception as e:
+        st.error(f"Erro no processamento de regras: {e}")
     return df
 
-# --- PÁGINA DE CONEXÕES (RESTAURADA E COMPLETA) ---
-if page == "🔌 Conexões":
-    st.title("🔌 Configurações de Projetos e APIs")
+# --- DENTRO DA PÁGINA DE CONEXÕES ---
+elif page == "🔌 Conexões":
+    st.title("🔌 Configurações de Escala")
     
-    with st.form("form_master_config"):
-        st.subheader(f"⚙️ Editando: {projeto_ativo}")
-        nome_p = st.text_input("Nome do Projeto", value="" if projeto_ativo == "+ Novo Projeto" else projeto_ativo)
-        
-        tab_t, tab_v, tab_d = st.tabs(["🚀 Plataforma de Captação", "💰 Plataforma de Vendas", "📊 Sheets"])
-        
-        with tab_t:
-            st.write("**Meta Ads v24.0**")
-            m_t = st.text_input("Access Token", type="password")
-            m_i = st.text_input("Ad Account ID (act_xxx)")
-            st.write("**Google Ads**")
-            g_d = st.text_input("Developer Token")
-            g_c = st.text_input("Customer ID")
-            st.write("**TikTok Ads**")
-            t_t = st.text_input("Access Token TikTok", type="password")
-            t_i = st.text_input("Advertiser ID")
+    # ... (código anterior de tokens de API) ...
 
-        with tab_v:
-            st.write("**Hotmart**")
-            h_i = st.text_input("Client ID")
-            h_s = st.text_input("Client Secret", type="password")
-            st.write("**Kiwify**")
-            k_t = st.text_input("API Key (Kiwify)", type="password")
-            k_i = st.text_input("Account ID")
+    st.subheader("🎯 Configuração de Lead Scoring (SaaS Mode)")
+    
+    # 1. Carregar Preview das colunas para o usuário escolher
+    url_leads = st.text_input("Link CSV do Sheets (Leads)", key="url_leads_saas")
+    
+    if url_leads:
+        try:
+            df_preview = pd.read_csv(url_leads.replace('/edit#gid=', '/export?format=csv&gid='))
+            colunas_disponiveis = df_preview.columns.tolist()
+            
+            # 2. Interface de Criação de Regras
+            with st.expander("🛠️ Editor de Regras de Pontuação", expanded=True):
+                if "regras_list" not in st.session_state:
+                    st.session_state.regras_list = []
 
-        with tab_d:
-            s_u = st.text_input("Link CSV da Planilha de Leads")
-            st.info("O mapeamento de colunas aparecerá na aba Lead Scoring após salvar o link.")
+                c1, c2, c3 = st.columns([2, 2, 1])
+                col_regra = c1.selectbox("Se a coluna...", colunas_disponiveis)
+                val_regra = c2.text_input("Contiver o texto...", placeholder="Ex: Empresário")
+                pts_regra = c3.number_input("Pontos", value=10, step=5)
 
-        if st.form_submit_button("💾 Salvar Tudo Permanentemente"):
-            # Lógica de salvar no Sheets Mestre
-            st.success(f"Projeto {nome_p} salvo com sucesso!")
-            st.rerun()
+                if st.button("➕ Adicionar Regra ao Projeto"):
+                    nova_regra = {"coluna": col_regra, "valor": val_regra, "pontos": pts_regra}
+                    st.session_state.regras_list.append(nova_regra)
+                    st.success("Regra adicionada à lista!")
 
-# --- PÁGINA DE LEAD SCORING (DINÂMICA) ---
-elif page == "🎯 Lead Scoring":
-    st.title(f"🎯 Lead Scoring Dinâmico - {projeto_ativo}")
-    # Aqui entra a lógica de ler as colunas do link de leads salvo
+                # Exibir regras atuais com opção de limpar
+                st.write("**Regras Ativas:**")
+                st.json(st.session_state.regras_list)
+                
+                if st.button("🗑️ Limpar Todas as Regras"):
+                    st.session_state.regras_list = []
+                    st.rerun()
+
+            # 3. Mapeamento de Tracking (UTM)
+            col_tracking = st.selectbox("Qual coluna identifica o Anúncio (UTM)?", colunas_disponiveis)
+
+            # BOTÃO DE SALVAMENTO FINAL NO BANCO DE DADOS
+            if st.button("💾 Salvar Configurações de Inteligência"):
+                # Aqui transformamos a lista de regras em texto (JSON) para salvar no Sheets
+                regras_formatadas = json.dumps(st.session_state.regras_list)
+                
+                # Lógica para salvar no seu Sheets Mestre (conn.update)
+                st.success("Configuração de SaaS salva com sucesso!")
+
+        except Exception as e:
+            st.error("Erro ao conectar com a planilha. Verifique o compartilhamento.")
